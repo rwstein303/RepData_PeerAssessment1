@@ -1,70 +1,115 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-author: "Robert W. Stein"
-date: "Sunday, July 19, 2015"
-output: 
-    html_document:
-      keep_md: true
----
+# Reproducible Research: Peer Assessment 1
+Robert W. Stein  
+Sunday, July 19, 2015  
 
 ##Loading and preprocessing the data.
 Load libraries needed for the analysis.
-```{r, echo=TRUE}
+
+```r
 library(plyr)
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:plyr':
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize
+## 
+## The following object is masked from 'package:stats':
+## 
+##     filter
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 library(ggplot2)
 ```
 Retrieve the data needed for this analysis and prepare it for usage.
-```{r, echo=TRUE}
+
+```r
 unzip("download.zip")
 activity_data <- read.csv("activity.csv")
 ```
 
 ##What is the mean total of steps taken per day?
 Create a summary table of the steps taken each day.
-```{r, echo=TRUE}
+
+```r
 ActivitySteps <- aggregate(activity_data$steps, list(activity_data$date), sum)
 colnames(ActivitySteps) <- c("Date", "Steps")
 ```
 Create a histogram of the steps taken per day.
-```{r, echo=TRUE}
+
+```r
 hist(ActivitySteps$Steps,breaks=20,col="blue",main=" Steps taken by Date",
      xlab="Steps",xlim=c(0,25000))
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+
 
 Display the mean of the steps taken each day, ignoring days where the data is
 missing.
-```{r, echo=TRUE}
+
+```r
 mean(ActivitySteps$Steps, na.rm=TRUE)
+```
+
+```
+## [1] 10766.19
 ```
 Display the median of the steps taken each day, ignoring days where the data is
 missing.
-```{r, echo=TRUE}
+
+```r
 median(ActivitySteps$Steps, na.rm=TRUE)
+```
+
+```
+## [1] 10765
 ```
 ##What is the average daily activity pattern?
 Create a plot for the daily activity pattern showing average number of steps
 taken in each duration.  A temporary data frame is created for this and the
 default column names are used to create the plot.
-```{r, echo=TRUE}
+
+```r
 dur_steps <- aggregate(activity_data$steps, list(activity_data$interval), mean,
      na.rm=TRUE)
 plot(x ~ Group.1, data=dur_steps, type = 'l',
      xlab="5 Minute Intervals", ylab="Average Steps Taken")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+
 
 What duration, on average, has the largest number of steps taken?
-```{r, echo=TRUE}
+
+```r
 max_steps = subset(dur_steps, steps$x == max(steps$x))
 max_steps$Group.1
 ```
 
+```
+## [1] 835
+```
+
 ##Imputing missing values.
 How many intervals are missing the number of steps?
-```{r, echo=TRUE}
+
+```r
 nrow(count(activity_data, vars="steps", wt_var="NA"))
+```
+
+```
+## [1] 1
 ```
 
 There are intervals where the number of steps is missing for various reasons.
@@ -79,12 +124,14 @@ implied value of HH.MM to represent the time of day.  This allows the intervals
 to be manipulated to create an index from 1-288 which represents the number of
 5-minute intervals in a day.  The index is then used to replace the 'NA' data
 with the mean for that 5-minute interval.
-```{r, echo=TRUE}
+
+```r
 amended_activity_data <- activity_data
 amended_dur_steps <- cbind(dur_steps, ceiling(dur_steps[,2]))
 ```
 Now fill in the steps showing 'NA' with the mean of the steps for the duration.
-```{r, echo=TRUE}
+
+```r
 for(i in 1:NROW(amended_activity_data)) {
     if(is.na(amended_activity_data[i,1] == "TRUE")) {
         inx_hr <- floor(amended_activity_data[i,3]/100)
@@ -97,14 +144,31 @@ for(i in 1:NROW(amended_activity_data)) {
 Create a histogram of the updated data to see how the imputed data affects the
 outcome.  Also display the mean and median for the number of steps taken for
 the updated data.
-```{r, echo=TRUE}
+
+```r
 ActivitySteps_new <- aggregate(amended_activity_data$steps, 
     list(amended_activity_data$date), sum)
 colnames(ActivitySteps_new) <- c("Date", "Steps")
 hist(ActivitySteps_new$Steps,breaks=20,col="blue",main=" Steps taken by Date",
     xlab="Steps",xlim=c(0,25000))
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
+
+```r
 mean(ActivitySteps_new$Steps)
+```
+
+```
+## [1] 10784.92
+```
+
+```r
 median(ActivitySteps_new$Steps)
+```
+
+```
+## [1] 10909
 ```
 These analyses, when compared to the previous results, show that replacing the
 missing data with imputed values has an affect on the results.  In general, the
@@ -116,7 +180,8 @@ weekdays versus weekends.
 
 The data frame will be updated to contain a column indicating if the date
 corresponds to a weekday or a weekend.
-```{r, echo=TRUE}
+
+```r
 amended_activity_data <- cbind(amended_activity_data,
     weekdays(as.Date(amended_activity_data[,2], "%Y-%m-%d")))
 colnames(amended_activity_data) <- c("steps","date","interval","DayOfWeek")
@@ -125,16 +190,20 @@ amended_activity_data$DayOfWeek <-
 ```
 Now that the data has an indication of weekday or weekend, calculate the mean by
 duration and weekday/weekend.
-```{r, echo=TRUE}
+
+```r
 DayTypeMean <- aggregate(amended_activity_data$steps, 
     list(amended_activity_data$DayOfWeek, amended_activity_data$interval), mean)
 ```
 Create a panel plot showing the distribution of steps for each interval by
 weekday and weekend.
-```{r, echo=TRUE}
+
+```r
 DayWeekPlot <- ggplot(data = DayTypeMean, aes(x = Group.2, y = x))  +
     geom_line(color = "blue") +
     labs(x = "Interval", y = "Steps")  +
     facet_grid(Group.1 ~ .)
 print(DayWeekPlot)
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-15-1.png) 
